@@ -13,6 +13,14 @@ const fs = require('fs');
 const app = express();
 app.use(bodyParser.json());
 
+// Add this to the top of the server.js
+const path = require('path');
+
+// Serve the HTML page
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Rest of your existing code...
+
 async function runPa11yWithPuppeteer(url) {
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
