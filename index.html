@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Checks</title>
+</head>
+<body>
+    <h1>Frontend Checks</h1>
+    <form id="checkForm">
+        <label for="url">URL:</label>
+        <input type="text" id="url" name="url" required><br><br>
+
+        <label>
+            <input type="checkbox" id="pa11y" name="pa11y" checked>
+            Pa11y (Accessibility)
+        </label><br>
+        <label>
+            <input type="checkbox" id="lighthouse" name="lighthouse" checked>
+            Lighthouse (Performance, SEO, Best Practices)
+        </label><br>
+        <label>
+            <input type="checkbox" id="htmlValidation" name="htmlValidation" checked>
+            HTML Validation
+        </label><br>
+        <label>
+            <input type="checkbox" id="eslint" name="eslint" checked>
+            ESLint (Security, Code Quality)
+        </label><br>
+        <label>
+            <input type="checkbox" id="stylelint" name="stylelint" checked>
+            Stylelint (CSS Quality)
+        </label><br><br>
+
+        <button type="submit">Run Checks</button>
+    </form>
+
+    <h2>Report</h2>
+    <pre id="report"></pre>
+
+    <script>
+        document.getElementById('checkForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const url = document.getElementById('url').value;
+            const checks = {
+                pa11y: document.getElementById('pa11y').checked,
+                lighthouse: document.getElementById('lighthouse').checked,
+                htmlValidation: document.getElementById('htmlValidation').checked,
+                eslint: document.getElementById('eslint').checked,
+                stylelint: document.getElementById('stylelint').checked
+            };
+
+            const response = await fetch('/check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url, checks })
+            });
+
+            const report = await response.json();
+            document.getElementById('report').textContent = JSON.stringify(report, null, 2);
+        });
+    </script>
+</body>
+</html>
