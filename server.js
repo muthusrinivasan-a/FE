@@ -7,14 +7,14 @@ import validator from 'html-validator';
 import axios from 'axios';
 import { ESLint } from 'eslint';
 import stylelint from 'stylelint';
-import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import path from 'path';
 
 // Function to dynamically import chrome-launcher
 const loadChromeLauncher = async () => {
-  const { default: chromeLauncher } = await import('chrome-launcher');
-  return chromeLauncher;
+  const module = await import('chrome-launcher');
+  return module.default;
 };
 
 // Function to run Pa11y with Puppeteer
@@ -48,6 +48,90 @@ async function runLighthouse(url) {
 async function validateHtml(url) {
   const response = await axios.get(url);
   const options = {
+    data: response.data,
+    format: 'json'
+  };
+
+  const result = await validator(options);
+  return result;
+}
+
+// Function to run ESLint
+async function runESLint() {
+  const eslint = new ESLint();
+  const results = await eslint.lintFiles(["**/*.js", "**/*.jsx"]);
+  const formatter = await eslint.loadFormatter("json");
+  const resultText = formatter.format(results);
+  return JSON.parse(resultText);
+}
+
+// Function to run Stylelint
+async function runStylelint() {
+  const results = await stylelint.lint({
+    files: '**/*.css',
+    formatter: 'json'
+  });
+
+  return JSON.parse(results.output);
+}
+
+// Function to generate consolidated report
+async function generateReport(url, checks) {
+  const report = { url };
+
+  if (checks.pa11y) {
+    report.pa11y = await runPa11yWithPuppeteer(url);
+  }
+  if (checks.lighthouse) {
+    report.lighthouse = await runLighthouse(url);
+  }
+  if (checks.htmlValidation) {
+    report.htmlValidation = await validateHtml(url);
+  }
+  if (checks.eslint) {
+    report.eslint = await runESLint();
+  }
+  if (checks.stylelint) {
+    report.stylelint = await runStylelint();
+  }
+
+  return report;
+}
+
+const app = express();
+app.use(bodyParser.json());
+
+// Get __dirname equivalent in ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Serve the HTML page
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.post('/check', async (req, res) => {
+  const { url, checks } = req.body;
+  if (!url) {
+    return res.status(400).send('URL is required');
+  }
+
+  try {
+    const report = await generateReport(url, checks);
+    res.json(report);
+  } catch (error) {
+    console.error('Error generating report:', error);
+    res.status(500).send('Error generating report');
+  }
+});
+
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+
+
+
+
+
     data: response.data,
     format: 'json'
   };
