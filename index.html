@@ -4,39 +4,126 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Frontend Checks</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+        .form-control {
+            display: block;
+            width: 100%;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #495057;
+            background-color: #fff;
+            background-clip: padding-box;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        .form-check {
+            position: relative;
+            display: block;
+            padding-left: 1.25rem;
+        }
+        .form-check-input {
+            position: absolute;
+            margin-top: 0.3rem;
+            margin-left: -1.25rem;
+        }
+        .form-check-label {
+            margin-bottom: 0;
+        }
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            color: #fff;
+            text-align: center;
+            vertical-align: middle;
+            user-select: none;
+            background-color: #007bff;
+            border: 1px solid #007bff;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            line-height: 1.5;
+            border-radius: 0.25rem;
+            transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+            border-color: #004085;
+        }
+        .result-section {
+            margin-top: 20px;
+        }
+        .issue {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .issue h3 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+        .issue p {
+            margin: 5px 0;
+        }
+        .issue a {
+            color: #007bff;
+        }
+        .issue a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <h1>Frontend Checks</h1>
-    <form id="checkForm">
-        <label for="url">URL:</label>
-        <input type="text" id="url" name="url" required><br><br>
+    <div class="container">
+        <h1>Frontend Checks</h1>
+        <form id="checkForm">
+            <div class="form-group">
+                <label for="url">URL:</label>
+                <input type="text" id="url" name="url" class="form-control" required>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="pa11y" name="pa11y" class="form-check-input" checked>
+                <label for="pa11y" class="form-check-label">Pa11y (Accessibility)</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="lighthouse" name="lighthouse" class="form-check-input" checked>
+                <label for="lighthouse" class="form-check-label">Lighthouse (Performance, SEO, Best Practices)</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="htmlValidation" name="htmlValidation" class="form-check-input" checked>
+                <label for="htmlValidation" class="form-check-label">HTML Validation</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="eslint" name="eslint" class="form-check-input" checked>
+                <label for="eslint" class="form-check-label">ESLint (Security, Code Quality)</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" id="stylelint" name="stylelint" class="form-check-input" checked>
+                <label for="stylelint" class="form-check-label">Stylelint (CSS Quality)</label>
+            </div>
+            <button type="submit" class="btn">Run Checks</button>
+        </form>
 
-        <label>
-            <input type="checkbox" id="pa11y" name="pa11y" checked>
-            Pa11y (Accessibility)
-        </label><br>
-        <label>
-            <input type="checkbox" id="lighthouse" name="lighthouse" checked>
-            Lighthouse (Performance, SEO, Best Practices)
-        </label><br>
-        <label>
-            <input type="checkbox" id="htmlValidation" name="htmlValidation" checked>
-            HTML Validation
-        </label><br>
-        <label>
-            <input type="checkbox" id="eslint" name="eslint" checked>
-            ESLint (Security, Code Quality)
-        </label><br>
-        <label>
-            <input type="checkbox" id="stylelint" name="stylelint" checked>
-            Stylelint (CSS Quality)
-        </label><br><br>
-
-        <button type="submit">Run Checks</button>
-    </form>
-
-    <h2>Report</h2>
-    <pre id="report"></pre>
+        <div class="result-section" id="result-section">
+            <h2>Results</h2>
+            <div id="results"></div>
+        </div>
+    </div>
 
     <script>
         document.getElementById('checkForm').addEventListener('submit', async (event) => {
@@ -58,8 +145,40 @@
             });
 
             const report = await response.json();
-            document.getElementById('report').textContent = JSON.stringify(report, null, 2);
+            displayResults(report);
         });
+
+        function displayResults(report) {
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = '';
+
+            if (report.issues && report.issues.length > 0) {
+                report.issues.forEach(issue => {
+                    const issueDiv = document.createElement('div');
+                    issueDiv.className = 'issue';
+
+                    const issueTitle = document.createElement('h3');
+                    issueTitle.textContent = issue.message || issue.description || 'Issue';
+                    issueDiv.appendChild(issueTitle);
+
+                    const issueDetail = document.createElement('p');
+                    issueDetail.textContent = issue.detail || issue.helpText || '';
+                    issueDiv.appendChild(issueDetail);
+
+                    if (issue.helpUrl) {
+                        const issueLink = document.createElement('a');
+                        issueLink.href = issue.helpUrl;
+                        issueLink.textContent = 'Learn more';
+                        issueLink.target = '_blank';
+                        issueDiv.appendChild(issueLink);
+                    }
+
+                    resultsContainer.appendChild(issueDiv);
+                });
+            } else {
+                resultsContainer.innerHTML = '<p>No issues found!</p>';
+            }
+        }
     </script>
 </body>
 </html>
