@@ -81,34 +81,48 @@ async function runStylelint() {
 
 // Function to generate consolidated report
 async function generateReport(url, checks) {
-  const report = { url, issues: [] };
+  const report = { url, issues: [], scores: {} };
 
   if (checks.pa11y) {
     const pa11yResults = await runPa11yWithPuppeteer(url);
     report.pa11y = pa11yResults;
-    report.issues.push(...pa11yResults.issues);
+    report.scores.accessibility = pa11yResults.issues.length ? 100 - pa11yResults.issues.length : 100;
+    report.issues.push({ type: 'accessibility', issues: pa11yResults.issues });
   }
   if (checks.lighthouse) {
     const lighthouseResults = await runLighthouse(url);
     report.lighthouse = lighthouseResults;
-    const lighthouseIssues = Object.values(lighthouseResults.audits).filter(audit => audit.score !== 1);
-    report.issues.push(...lighthouseIssues);
+    report.scores.performance = Math.round(lighthouseResults.categories.performance.score * 100);
+    report.scores.accessibility = Math.round(lighthouseResults.categories.accessibility.score * 100);
+    report.scores['best-practices'] = Math.round(lighthouseResults.categories['best-practices'].score * 100);
+    report.scores.seo = Math.round(lighthouseResults.categories.seo.score * 100);
+    report.issues.push({
+      type: 'performance',
+      issues: Object.values(lighthouseResults.audits).filter(audit => audit.score !== 1 && audit.details && audit.details.type !== 'diagnostic')
+    });
   }
   if (checks.htmlValidation) {
     const htmlValidationResults = await validateHtml(url);
     report.htmlValidation = htmlValidationResults;
-    report.issues.push(...htmlValidationResults.messages);
+    report.scores.htmlValidation = htmlValidationResults.messages.length ? 100 - htmlValidationResults.messages.length : 100;
+    report.issues.push({ type: 'htmlValidation', issues: htmlValidationResults.messages });
   }
   if (checks.eslint) {
     const eslintResults = await runESLint();
     report.eslint = eslintResults;
-    report.issues.push(...eslintResults);
+    report.scores.eslint = eslintResults.length ? 100 - eslintResults.length : 100;
+    report.issues.push({ type: 'eslint', issues: eslintResults });
   }
   if (checks.stylelint) {
     const stylelintResults = await runStylelint();
     report.stylelint = stylelintResults;
-    report.issues.push(...stylelintResults);
+    report.scores.stylelint = stylelintResults.length ? 100 - stylelintResults.length : 100;
+    report.issues.push({ type: 'stylelint', issues: stylelintResults });
   }
+
+  // Calculate consolidated score as an average of individual scores
+  const scoreValues = Object.values(report.scores);
+  report.scores.consolidated = scoreValues.length ? Math.round(scoreValues.reduce((a, b) => a + b) / scoreValues.length) : 0;
 
   return report;
 }
