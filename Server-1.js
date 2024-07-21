@@ -84,24 +84,30 @@ async function generateReport(url, checks) {
   const report = { url, issues: [] };
 
   if (checks.pa11y) {
-    report.pa11y = await runPa11yWithPuppeteer(url);
-    report.issues.push(...report.pa11y.issues);
+    const pa11yResults = await runPa11yWithPuppeteer(url);
+    report.pa11y = pa11yResults;
+    report.issues.push(...pa11yResults.issues);
   }
   if (checks.lighthouse) {
-    report.lighthouse = await runLighthouse(url);
-    report.issues.push(...report.lighthouse.audits);
+    const lighthouseResults = await runLighthouse(url);
+    report.lighthouse = lighthouseResults;
+    const lighthouseIssues = Object.values(lighthouseResults.audits).filter(audit => audit.score !== 1);
+    report.issues.push(...lighthouseIssues);
   }
   if (checks.htmlValidation) {
-    report.htmlValidation = await validateHtml(url);
-    report.issues.push(...report.htmlValidation.messages);
+    const htmlValidationResults = await validateHtml(url);
+    report.htmlValidation = htmlValidationResults;
+    report.issues.push(...htmlValidationResults.messages);
   }
   if (checks.eslint) {
-    report.eslint = await runESLint();
-    report.issues.push(...report.eslint);
+    const eslintResults = await runESLint();
+    report.eslint = eslintResults;
+    report.issues.push(...eslintResults);
   }
   if (checks.stylelint) {
-    report.stylelint = await runStylelint();
-    report.issues.push(...report.stylelint);
+    const stylelintResults = await runStylelint();
+    report.stylelint = stylelintResults;
+    report.issues.push(...stylelintResults);
   }
 
   return report;
