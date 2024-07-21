@@ -12,6 +12,10 @@
         h1 {
             color: #333;
         }
+        .container {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
         .form-group {
             margin-bottom: 1rem;
         }
@@ -86,7 +90,15 @@
         .issue a:hover {
             text-decoration: underline;
         }
+        .score {
+            font-size: 1.5em;
+            margin-top: 20px;
+        }
+        canvas {
+            max-width: 100%;
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -109,10 +121,6 @@
                 <label for="htmlValidation" class="form-check-label">HTML Validation</label>
             </div>
             <div class="form-check">
-                <input type="checkbox" id="eslint" name="eslint" class="form-check-input" checked>
-                <label for="eslint" class="form-check-label">ESLint (Security, Code Quality)</label>
-            </div>
-            <div class="form-check">
                 <input type="checkbox" id="stylelint" name="stylelint" class="form-check-input" checked>
                 <label for="stylelint" class="form-check-label">Stylelint (CSS Quality)</label>
             </div>
@@ -121,6 +129,8 @@
 
         <div class="result-section" id="result-section">
             <h2>Results</h2>
+            <div id="scores"></div>
+            <canvas id="scoreChart" width="400" height="200"></canvas>
             <div id="results"></div>
         </div>
     </div>
@@ -134,7 +144,6 @@
                 pa11y: document.getElementById('pa11y').checked,
                 lighthouse: document.getElementById('lighthouse').checked,
                 htmlValidation: document.getElementById('htmlValidation').checked,
-                eslint: document.getElementById('eslint').checked,
                 stylelint: document.getElementById('stylelint').checked
             };
 
@@ -149,31 +158,83 @@
         });
 
         function displayResults(report) {
+            const scoresContainer = document.getElementById('scores');
             const resultsContainer = document.getElementById('results');
+            const scoreChartCanvas = document.getElementById('scoreChart').getContext('2d');
+            scoresContainer.innerHTML = '';
             resultsContainer.innerHTML = '';
 
-            if (report.issues && report.issues.length > 0) {
-                report.issues.forEach(issue => {
-                    const issueDiv = document.createElement('div');
-                    issueDiv.className = 'issue';
+            // Display scores
+            if (report.scores) {
+                const scoresTitle = document.createElement('h3');
+                scoresTitle.textContent = 'Scores';
+                scoresContainer.appendChild(scoresTitle);
 
-                    const issueTitle = document.createElement('h3');
-                    issueTitle.textContent = issue.message || issue.description || 'Issue';
-                    issueDiv.appendChild(issueTitle);
+                for (const [key, value] of Object.entries(report.scores)) {
+                    const scoreDiv = document.createElement('div');
+                    scoreDiv.className = 'score';
+                    scoreDiv.textContent = `${key}: ${value}`;
+                    scoresContainer.appendChild(scoreDiv);
+                }
 
-                    const issueDetail = document.createElement('p');
-                    issueDetail.textContent = issue.detail || issue.helpText || '';
-                    issueDiv.appendChild(issueDetail);
-
-                    if (issue.helpUrl) {
-                        const issueLink = document.createElement('a');
-                        issueLink.href = issue.helpUrl;
-                        issueLink.textContent = 'Learn more';
-                        issueLink.target = '_blank';
-                        issueDiv.appendChild(issueLink);
+                // Create a chart for scores
+                const scoreChart = new Chart(scoreChartCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(report.scores),
+                        datasets: [{
+                            label: 'Scores',
+                            data: Object.values(report.scores),
+                            backgroundColor: 'rgba(0, 123, 255, 0.5)',
+                            borderColor: 'rgba(0, 123, 255, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        }
                     }
+                });
+            }
 
-                    resultsContainer.appendChild(issueDiv);
+            // Display issues
+            if (report.issues && report.issues.length > 0) {
+                report.issues.forEach(issueCategory => {
+                    const categoryDiv = document.createElement('div');
+                    categoryDiv.className = 'issue-category';
+
+                    const categoryTitle = document.createElement('h3');
+                    categoryTitle.textContent = `${issueCategory.type} Issues`;
+                    categoryDiv.appendChild(categoryTitle);
+
+                    issueCategory.issues.forEach(issue => {
+                        const issueDiv = document.createElement('div');
+                        issueDiv.className = 'issue';
+
+                        const issueTitle = document.createElement('h3');
+                        issueTitle.textContent = issue.message || issue.description || 'Issue';
+                        issueDiv.appendChild(issueTitle);
+
+                        const issueDetail = document.createElement('p');
+                        issueDetail.textContent = issue.detail || issue.helpText || '';
+                        issueDiv.appendChild(issueDetail);
+
+                        if (issue.helpUrl) {
+                            const issueLink = document.createElement('a');
+                            issueLink.href = issue.helpUrl;
+                            issueLink.textContent = 'Learn more';
+                            issueLink.target = '_blank';
+                            issueDiv.appendChild(issueLink);
+                        }
+
+                        categoryDiv.appendChild(issueDiv);
+                    });
+
+                    resultsContainer.appendChild(categoryDiv);
                 });
             } else {
                 resultsContainer.innerHTML = '<p>No issues found!</p>';
