@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frontend Checks</title>
+    <title>Web Health Check</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -40,6 +40,7 @@
             position: relative;
             display: block;
             padding-left: 1.25rem;
+            margin-bottom: 0.75rem;
         }
         .form-check-input {
             position: absolute;
@@ -102,36 +103,39 @@
 </head>
 <body>
     <div class="container">
-        <h1>Frontend Checks</h1>
-        <form id="checkForm">
-            <div class="form-group">
-                <label for="url">URL:</label>
-                <input type="text" id="url" name="url" class="form-control" required>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" id="pa11y" name="pa11y" class="form-check-input" checked>
-                <label for="pa11y" class="form-check-label">Pa11y (Accessibility)</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" id="lighthouse" name="lighthouse" class="form-check-input" checked>
-                <label for="lighthouse" class="form-check-label">Lighthouse (Performance, SEO, Best Practices)</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" id="htmlValidation" name="htmlValidation" class="form-check-input" checked>
-                <label for="htmlValidation" class="form-check-label">HTML Validation</label>
-            </div>
-            <div class="form-check">
-                <input type="checkbox" id="stylelint" name="stylelint" class="form-check-input" checked>
-                <label for="stylelint" class="form-check-label">Stylelint (CSS Quality)</label>
-            </div>
-            <button type="submit" class="btn">Run Checks</button>
+        <h1>Web Health Check</h1>
+        <form id="checkForm" aria-labelledby="formHeading">
+            <fieldset>
+                <legend id="formHeading">Enter the URL and select the checks you want to perform:</legend>
+                <div class="form-group">
+                    <label for="url">URL:</label>
+                    <input type="text" id="url" name="url" class="form-control" required aria-required="true">
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="accessibility" name="accessibility" class="form-check-input" checked>
+                    <label for="accessibility" class="form-check-label">Accessibility Check</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="performance" name="performance" class="form-check-input" checked>
+                    <label for="performance" class="form-check-label">Performance Check</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="htmlValidation" name="htmlValidation" class="form-check-input" checked>
+                    <label for="htmlValidation" class="form-check-label">HTML Validation</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="stylelint" name="stylelint" class="form-check-input" checked>
+                    <label for="stylelint" class="form-check-label">CSS Quality Check</label>
+                </div>
+                <button type="submit" class="btn">Run Checks</button>
+            </fieldset>
         </form>
 
         <div class="result-section" id="result-section">
             <h2>Results</h2>
-            <div id="scores"></div>
-            <canvas id="scoreChart" width="400" height="200"></canvas>
-            <div id="results"></div>
+            <div id="scores" role="region" aria-live="polite"></div>
+            <canvas id="scoreChart" width="400" height="200" aria-label="Scores chart"></canvas>
+            <div id="results" role="region" aria-live="polite"></div>
         </div>
     </div>
 
@@ -141,8 +145,8 @@
 
             const url = document.getElementById('url').value;
             const checks = {
-                pa11y: document.getElementById('pa11y').checked,
-                lighthouse: document.getElementById('lighthouse').checked,
+                accessibility: document.getElementById('accessibility').checked,
+                performance: document.getElementById('performance').checked,
                 htmlValidation: document.getElementById('htmlValidation').checked,
                 stylelint: document.getElementById('stylelint').checked
             };
@@ -173,7 +177,7 @@
                 for (const [key, value] of Object.entries(report.scores)) {
                     const scoreDiv = document.createElement('div');
                     scoreDiv.className = 'score';
-                    scoreDiv.textContent = `${key}: ${value}`;
+                    scoreDiv.textContent = `${key.replace(/([A-Z])/g, ' $1')}: ${value}`;
                     scoresContainer.appendChild(scoreDiv);
                 }
 
@@ -181,7 +185,7 @@
                 const scoreChart = new Chart(scoreChartCanvas, {
                     type: 'bar',
                     data: {
-                        labels: Object.keys(report.scores),
+                        labels: Object.keys(report.scores).map(key => key.replace(/([A-Z])/g, ' $1')),
                         datasets: [{
                             label: 'Scores',
                             data: Object.values(report.scores),
@@ -208,7 +212,7 @@
                     categoryDiv.className = 'issue-category';
 
                     const categoryTitle = document.createElement('h3');
-                    categoryTitle.textContent = `${issueCategory.type} Issues`;
+                    categoryTitle.textContent = `${issueCategory.type.replace(/([A-Z])/g, ' $1')} Issues`;
                     categoryDiv.appendChild(categoryTitle);
 
                     issueCategory.issues.forEach(issue => {
